@@ -95,23 +95,30 @@ public class Caesar{
     public static String caesExe(Generator genned){
         Scanner lidar = new Scanner(System.in);
         System.out.println("Enter eNcrypt/Decrypt: ");
-        String origPing = lidar.nextLine();
-        if(origPing.equals("N")){   //these are problems that will be solved by the gui. you will select encrypt/decrypt from there to make this work.
+        String statePing = lidar.nextLine();
+        int shiftPut = 0;
+        boolean statePut = false;
+        String result = null;
+
+        if(statePing.equals("N")){   //these are problems that will be solved by the gui. you will select encrypt/decrypt from there to make this work.
             System.out.println("Enter shift: ");
-            int shiftPut = lidar.nextInt();
-            Caesar cipherator = new Caesar(true, shiftPut);
-            lidar.close();
-            return caesEnc(genned, cipherator);
+            statePut = true;
+            shiftPut = lidar.nextInt();
         }
-        else if(origPing.equals("D")){
+        else if(statePing.equals("D")){
             System.out.println("Enter shift: ");
-            int shiftPut = lidar.nextInt();
-            Caesar cipherator = new Caesar(false, shiftPut);
-            lidar.close();
-            return caesDec(genned, cipherator);
+            shiftPut = lidar.nextInt();
         }
 
+        Caesar cipherator = new Caesar(statePut, shiftPut);
+        if(cipherator.state){
+            result = caesEnc(genned, cipherator);
+        }
+        else{
+            result = caesDec(genned, cipherator);
+        }
+        
         lidar.close();
-        return null;    //THIS IS DEADLY AT THE MOMENT
+        return result;
     }
 }
