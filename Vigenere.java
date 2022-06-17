@@ -156,13 +156,25 @@ public class Vigenere {
         String result = null;
 
         if(statePing.toUpperCase().equals("N")){   //these are problems that will be solved by the gui. you will select encrypt/decrypt from there to make this work.
-            System.out.println("Enter key: ");
             statePut = true;
+            System.out.println("Enter key (must only consist of letters): ");
             keyPut = lidar.nextLine();
+            boolean validKey = keyPut.matches("[a-zA-Z]+");
+            while(!validKey){
+                System.out.println("Enter key (must only consist of letters): ");
+                keyPut = lidar.nextLine();
+                validKey = keyPut.matches("[a-zA-Z]+");
+            }
         }
         else if(statePing.toUpperCase().equals("D")){
-            System.out.println("Enter key: ");
+            System.out.println("Enter key (must only consist of letters): ");
             keyPut = lidar.nextLine();
+            boolean validKey = keyPut.matches("[a-zA-Z]+");
+            while(!validKey){
+                System.out.println("Enter key (must only consist of letters): ");
+                keyPut = lidar.nextLine();
+                validKey = keyPut.matches("[a-zA-Z]+");
+            }
         }
 
         Vigenere cipherator = new Vigenere(statePut, keyPut);
@@ -179,36 +191,3 @@ public class Vigenere {
 }
 
 //must check for valid keys; keys must be letters only (entered key is case-insensitive)
-
-
-/*
-def vigDec():
-    key = input("Enter key: ")
-    inp = input("Enter text to decrypt: ")
-    res = ""
-
-    keyStr = key.upper()
-
-    grid = vigSqGen()
-    inp2 = inp.upper()
-
-    keyTrack = 0
-    txtTrack = 0
-
-    while txtTrack < len(inp2):
-        k = ord(keyStr[keyTrack%len(keyStr)])-65
-        if inp2[txtTrack].isalpha():
-            j = grid[k].find(inp2[txtTrack])
-            res = res + grid[0][j]
-            keyTrack += 1
-            txtTrack += 1
-        else:
-            res = res + inp2[txtTrack]
-            txtTrack += 1
-
-    print("\nDecrypted text: " + res)
-
-def vigEnc():
-    vigDec()
-
- */
