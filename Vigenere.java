@@ -2,7 +2,6 @@ import java.util.*;
 public class Vigenere {
     boolean state;      //same as caesar: true for encrypt, false for decrypt
     String key;
-    String matchKey;
     
     private Vigenere(boolean stateInp, String keyInp){
         state = stateInp;
