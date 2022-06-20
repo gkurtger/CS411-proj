@@ -10,7 +10,7 @@ public class Caesar{
         shift = shiftInp;
     }
 
-    public static String caesDec(Generator genned, Caesar op){
+    private static String caesDec(Generator genned, Caesar op){
         String plain = null;
         if(genned.getPass() == null){
             plain = genned.getOrig();
@@ -19,25 +19,30 @@ public class Caesar{
             plain = genned.getPass();
         }
         String cipher = "";
+        int trueShift = op.shift%26;
+        System.out.println(trueShift);
 
         for(int i=0; i<plain.length(); i++){
-            char worked = plain.charAt(i);
-            int trueShift = op.shift%26;
+            char worked = plain.charAt(i);            
             if (Character.isAlphabetic(worked)){
                 int workedVal = (int) worked;
                 int shiftedVal = workedVal - trueShift;
-                
-                if( (shiftedVal>90)&&(workedVal<97) ){
-                    shiftedVal -= 26;
-                    char added = (char)shiftedVal;
-                    cipher = cipher + added;
-                }                
-                else if( (shiftedVal<65) || (shiftedVal<97 && workedVal>97) ){
+
+                if( (shiftedVal<97)&&(workedVal>=97) ){  //was lowercase, jumped beyond
                     shiftedVal += 26;
                     char added = (char)shiftedVal;
                     cipher = cipher + added;
                 }
-                                
+                else if( (shiftedVal<65) || (shiftedVal<97 && workedVal>=97) ){  //noclipped backwards beyond intended case
+                    shiftedVal += 26;
+                    char added = (char)shiftedVal;
+                    cipher = cipher + added;
+                }
+                else if( (shiftedVal>122)  ){   //noclipped beyond letters forwards
+                    shiftedVal -= 26;
+                    char added = (char)shiftedVal;
+                    cipher = cipher + added;
+                }
                 else{
                     char added = (char)shiftedVal;
                     cipher = cipher + added;
@@ -51,7 +56,7 @@ public class Caesar{
         return cipher;
     }
 
-    public static String caesEnc(Generator genned, Caesar op){
+    private static String caesEnc(Generator genned, Caesar op){
         String plain = null;
         if(genned.getPass() == null){
             plain = genned.getOrig();
@@ -60,21 +65,28 @@ public class Caesar{
             plain = genned.getPass();
         }
         String cipher = "";
+        int trueShift = op.shift%26;
+        System.out.println(trueShift);
 
         for(int i=0; i<plain.length(); i++){
             char worked = plain.charAt(i);
-            int trueShift = op.shift%26;
+            
             if (Character.isAlphabetic(worked)){
                 int workedVal = (int) worked;
                 int shiftedVal = workedVal + trueShift;
                 
-                if( (shiftedVal>90)&&(workedVal<97) ){
+                if( (shiftedVal>90)&&(workedVal<97) ){  //was uppercase, jumped beyond
                     shiftedVal -= 26;
                     char added = (char)shiftedVal;
                     cipher = cipher + added;
                 }                
-                else if( (shiftedVal<65) || (shiftedVal<97 && workedVal>97) ){
+                else if( (shiftedVal<65) || (shiftedVal<97 && workedVal>=97) ){  //noclipped backwards beyond intended case
                     shiftedVal += 26;
+                    char added = (char)shiftedVal;
+                    cipher = cipher + added;
+                }
+                else if( (shiftedVal>122)  ){   //noclips beyond letters
+                    shiftedVal -= 26;
                     char added = (char)shiftedVal;
                     cipher = cipher + added;
                 }
@@ -92,7 +104,7 @@ public class Caesar{
         return cipher;
     }
 
-    public static String caesExe(Generator genned){
+    public static void caesExe(Generator genned){
         Scanner lidar = new Scanner(System.in);
         System.out.println("Enter eNcrypt/Decrypt: ");
         String statePing = lidar.nextLine();
@@ -100,12 +112,12 @@ public class Caesar{
         boolean statePut = false;
         String result = null;
 
-        if(statePing.equals("N")){   //these are problems that will be solved by the gui. you will select encrypt/decrypt from there to make this work.
-            System.out.println("Enter shift: ");
+        if(statePing.toUpperCase().equals("N")){   //these are problems that will be solved by the gui. you will select encrypt/decrypt from there to make this work.
             statePut = true;
+            System.out.println("Enter shift: ");
             shiftPut = lidar.nextInt();
         }
-        else if(statePing.equals("D")){
+        else if(statePing.toUpperCase().equals("D")){
             System.out.println("Enter shift: ");
             shiftPut = lidar.nextInt();
         }
@@ -119,6 +131,6 @@ public class Caesar{
         }
         
         lidar.close();
-        return result;
+        genned.setPass(result);
     }
 }
