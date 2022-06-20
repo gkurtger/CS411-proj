@@ -90,7 +90,6 @@ public class Caesar{
                     char added = (char)shiftedVal;
                     cipher = cipher + added;
                 }
-                                
                 else{
                     char added = (char)shiftedVal;
                     cipher = cipher + added;
