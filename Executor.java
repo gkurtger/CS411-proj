@@ -24,18 +24,18 @@ public class Executor {     //venari pallin
         String opPing = lidar.nextLine();
         
         if(opPing.toUpperCase().equals("C")){
-            genned.setPass(Caesar.caesExe(genned));
+            Caesar.caesExe(genned);
             System.out.println(genned.getPass());
         }
 
         else if(opPing.toUpperCase().equals("A")){
-            genned.setPass(Atbash.atbExe(genned));
+            Atbash.atbExe(genned);
             System.out.println(genned.getPass());
         }
 
         
         else if(opPing.toUpperCase().equals("V")){
-            genned.setPass(Vigenere.vigExe(genned));
+            Vigenere.vigExe(genned);
             System.out.println(genned.getPass());
         }
 
