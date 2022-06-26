@@ -35,10 +35,9 @@ class Safe_Word():
     user_key = None # This is used to check if application is logged in. Ideally it's a key to decrypt stuff.
     
 
-    GUI_debug = 0
     def __init__(self):
         self.backend = Backend()
-        self.GUI_debug = 0
+        self.GUI_debug = 2
         # create main window
         self.create_main_window()
 
@@ -53,10 +52,13 @@ class Safe_Word():
             return None
             
         login = self.backend.check_password(username, password)
+        # login = (True/False, user_key)
         if not login[0]:
             error = Label(window, text="Wrong username or password")
             error.grid(row=3, column=1)
         else:
+            self.pw_listbox[0].delete(*self.pw_listbox[0].get_children())
+            self.retrieve_passwords(login[1])
             window.destroy()
             self.user_key = login[1]
             
@@ -66,16 +68,51 @@ class Safe_Word():
         item.delete(*item.get_children())
         return None
 
-    def retrieve_passwords(self, user_key, listbox: ttk.Treeview):
+    def retrieve_passwords(self, user_key):
+        if self.GUI_debug > 1: print("retrieve password")
+        list_of_passwords = None
+        # TODO get user's passwords from backend:
+        # return a list containing: website, username, encryption. No actual passwords.
+
+
+        for j in range(100):
+            self.pw_listbox[0].insert(parent="", index=END, text=str(j), value=[str(j), "something"+str(j+10), "something"+str(j*2-5)])
+
+    def add_password(self, user_key, listbox: list):
+
+        if self.GUI_debug > 1: print("add_password")
+        # TODO call backend to add the new password
         ...
 
-    def add_password(self, user_key, listbox: ttk.Treeview):
+    def view_password(self, something1, something):
+        if self.GUI_debug > 1: print("view_password_window")
         ...
 
-    def delete_password(self, listbox: ttk.Treeview):
+
+    def delete_password_from_database(self, password_id):
+        # TODO call backend to delete password
+        print(password_id)
+        ...
+
+    def delete_password_window(self, listbox: list):
+        if self.GUI_debug > 1: print("delete_password_window")
         del_pw_confirm = Toplevel()
-        confirm_text = Label(self.main_window, text="Confirm delete password?")
+        del_pw_confirm.geometry(self.dpi_settings["small_window_geometry"])
+        del_pw_confirm.grab_set()
+
+        delete_item = listbox[0].get(listbox[0].selection())
+        print(delete_item)
+
+        confirm_text = Label(del_pw_confirm, text="Confirm delete password?")
+        confirm_text.pack(side=TOP, pady=10)
         
+        yes_button = Button(del_pw_confirm, text="Delete", background="#ee9999", highlightbackground="#ffcccc", activebackground="#ffcccc",
+            command=lambda b=listbox[0]: self.delete_password_from_database(b))
+        yes_button.pack()
+        no_button = Button(del_pw_confirm, text="No", command=del_pw_confirm.destroy)
+        no_button.pack()
+
+        # TODO call backend to delete the password
         ...
 
     def show_login_window(self):
@@ -114,6 +151,8 @@ class Safe_Word():
         main_window.title("Safe Word")
         main_window.geometry(self.dpi_settings["main_window_geometry"])
 
+        # This is such that the object is passed by reference.
+        self.pw_listbox = [None]
 
         menubar = Menu(main_window)
         
@@ -121,6 +160,8 @@ class Safe_Word():
         menubar.add_cascade(label="Options", menu=menu_file)
 
         menu_file.add_command(label="Log in", command=self.show_login_window)
+        menu_file.add_command(label="Log out", command=lambda a=self.pw_listbox: self.log_out(a[0]))
+        menu_file.add_command(label="Exit", command=main_window.destroy)
         main_window.config(menu = menubar)
 
         top_frame_height = self.dpi_settings["top_frame_height"]
@@ -135,13 +176,17 @@ class Safe_Word():
         top_frame.grid(row=0, sticky="we", padx=10, pady=10)
 
         top_frame_buttons = {
-            "New\npassword": {"fun": todo, "item": None}, "Edit\npassword": {"fun": todo, "item": None},
-            "Delete\npassword": {"fun": todo, "item": None}, "View\npassword": {"fun": todo, "item": None},
+            "New\npassword": {"fun": self.add_password, "args": ["sfs", self.pw_listbox], "item": None},
+            "Edit\npassword": {"fun": self.add_password, "args": ["sfs", self.pw_listbox], "item": None},
+            "Delete\npassword": {"fun": self.delete_password_window, "args": [self.pw_listbox], "item": None},
+            "View\npassword": {"fun": self.view_password, "args": ["sfs", self.pw_listbox], "item": None},
         }
 
         col_count = 0
         for b in top_frame_buttons:
-            top_frame_buttons[b]["item"] = Button(top_frame, text=b, height=3, width=top_frame_buttons_width, command=top_frame_buttons[b]["fun"])
+            fun = top_frame_buttons[b]["fun"]
+            print(fun)
+            top_frame_buttons[b]["item"] = Button(top_frame, text=b, height=3, width=top_frame_buttons_width, command=lambda fun=fun, b=b: fun(*top_frame_buttons[b]["args"]))
             top_frame_buttons[b]["item"].grid(row=0, column=col_count, sticky="swen")
             col_count += 1
 
@@ -157,9 +202,8 @@ class Safe_Word():
         password_list.heading("Website", text = "Website", anchor = W)
         password_list.heading("User name", text = "User name", anchor = W)
         password_list.heading("Encryption", text = "Encryption", anchor = W)
+        self.pw_listbox[0] = password_list
 
-        menu_file.add_command(label="Log out", command=lambda:self.log_out(password_list))
-        menu_file.add_command(label="Exit", command=main_window.destroy)
 
         pwlist_scrollbar = Scrollbar(
             password_list_frame,
@@ -168,8 +212,6 @@ class Safe_Word():
         pwlist_scrollbar.pack(side=RIGHT, fill=BOTH)
         password_list.config(yscrollcommand = pwlist_scrollbar.set)
 
-        for j in range(100):
-            password_list.insert(parent="", index=END, text=str(j), value=[str(j), "something"+str(j+10), "something"+str(j*2-5)])
 
 
         bottom_frame = Frame(main_window, height=self.dpi_settings["bottom_frame_height"], relief=SUNKEN, borderwidth=1)
@@ -207,6 +249,7 @@ class Safe_Word():
             self.dpi_settings["main_window_geometry"] = "700x400"
             self.dpi_settings["bottom_frame_height"] = 20
             self.dpi_settings["log_in_window_geometry"] = "500x150"
+            self.dpi_settings["small_window_geometry"] = "300x150"
             self.dpi_settings["dpi_scrollbar_width"] = 16
             self.dpi_settings["dpi_process_window_geometry"] = "200x100"
             self.dpi_settings["dpi_about_page_geometry"] = "300x150"
@@ -223,6 +266,7 @@ class Safe_Word():
             self.dpi_settings["main_window_geometry"] = "1400x800"
             self.dpi_settings["bottom_frame_height"] = 40
             self.dpi_settings["log_in_window_geometry"] = "1000x300"
+            self.dpi_settings["small_window_geometry"] = "600x300"
             self.dpi_settings["dpi_scrollbar_width"] = 28
             self.dpi_settings["dpi_process_window_geometry"] = "500x200"
             self.dpi_settings["dpi_about_page_geometry"] = "600x300"
