@@ -5,6 +5,8 @@ from time import sleep
 
 from sys import platform
 
+from requests import delete
+
 
 
 class Backend():
@@ -37,9 +39,33 @@ class Safe_Word():
 
     def __init__(self):
         self.backend = Backend()
-        self.GUI_debug = 2
+        self.GUI_debug = 0
         # create main window
         self.create_main_window()
+
+
+    def status_update(self, displayed_text="", ifsame=None):
+        """
+        updates the text in the status bar.
+        """
+        # ifsame: only update the text
+        # if the currently displayed text is the same as this string.
+        
+        if self.GUI_debug > 1:
+            print("status_update('%s', condition = %s)"
+                    %(displayed_text, ifsame))
+        self.statusbar_label
+        if ifsame == None:
+            # do not check if the status text is the same as "ifsame"
+            if self.statusbar_label['text'] == displayed_text:
+                self.statusbar_label.config(text = " ")
+                self.statusbar_label.after(20,
+                                    lambda t = displayed_text:self.status_update(t))
+            else: self.statusbar_label.config(text = displayed_text)
+        else: # only change label if the text is the same as "ifsame"
+            if self.statusbar_label['text'] == ifsame:
+                self.statusbar_label.config(text = displayed_text)
+        return None
 
 
     def user_authentication(self, username, password, window):
@@ -69,51 +95,166 @@ class Safe_Word():
         return None
 
     def retrieve_passwords(self, user_key):
+        """Retrieve the user's passwords from backend."""
         if self.GUI_debug > 1: print("retrieve password")
         list_of_passwords = None
         # TODO get user's passwords from backend:
         # return a list containing: website, username, encryption. No actual passwords.
 
+        for j in range(5):
+            self.pw_listbox[0].insert(parent="", index=END, text=str(j), value=["this", "something"+str(j+10), "something"+str(j*2-5)])
 
-        for j in range(100):
-            self.pw_listbox[0].insert(parent="", index=END, text=str(j), value=[str(j), "something"+str(j+10), "something"+str(j*2-5)])
+    def edit_password(self, password_id, website, username, password, encryption, window_to_destroy):
+        if website.strip() == "" or username.strip == "" or password == "":
+            self.status_update("Field missing")
+            self.main_window.after(4000, lambda: self.status_update("", "Field missing"))
+            return
+        self.delete_password_from_database(self.pw_listbox[0], password_id, None)
+        self.add_password(website, username, password, encryption, self.pw_listbox, window_to_destroy)
 
-    def add_password(self, user_key, listbox: list):
+    def add_password(self, website, username, password, encryption, listbox: list, window_to_destroy: Toplevel):
+        self.user_key
 
-        if self.GUI_debug > 1: print("add_password")
+        if website.strip() == "" or username.strip == "" or password == "":
+            self.status_update("Field missing")
+            self.main_window.after(4000, lambda: self.status_update("", "Field missing"))
+
+            return None
+
+        l = list(listbox[0].get_children())
+        l = [listbox[0].item(x)['values'] for x in l]
+        l.append([website, username, encryption])
+        l.sort()
+        listbox[0].delete(*listbox[0].get_children())
+        for item in l:
+            listbox[0].insert(parent="", index=END, text="", value=item)
+
+        print(self.user_key, website, username, password, encryption, listbox[0])
+        print("todo: call backend to add/edit new password")
         # TODO call backend to add the new password
-        ...
+        window_to_destroy.destroy()
+        self.status_update("Password saved")
+        self.main_window.after(6000, lambda: self.status_update("", "Password saved"))
+        return
 
-    def view_password(self, something1, something):
-        if self.GUI_debug > 1: print("view_password_window")
-        ...
+    def add_password_window(self, user_key, listbox: list, title_text):
+        if self.GUI_debug > 1: print("add_password")
+
+        if title_text == "Edit Password" and (len(listbox[0].selection()) == 0 or len(listbox[0].selection()) > 1):
+            sleep(0.02)
+            self.status_update("Select one entry to edit")
+            self.main_window.after(6000, lambda m="Select one entry to edit": self.status_update("", m))
+            return
+
+        new_pw = Toplevel()
+        new_pw.title(title_text)
+        new_pw.grab_set()
+        
+        new_pw.columnconfigure(0, weight=0)
+        new_pw.columnconfigure(1, weight=1)
+        new_pw.rowconfigure(0, weight=0)
+        new_pw.rowconfigure(1, weight=0)
+        new_pw.rowconfigure(2, weight=0)
+        new_pw.rowconfigure(3, weight=0)
+        new_pw.rowconfigure(4, weight=1)
+
+        website_l = Label(new_pw, text="Website")
+        username_l = Label(new_pw, text="User name")
+        newpw_l = Label(new_pw, text="Password")
+        website_e = Entry(new_pw)
+        username_e = Entry(new_pw)
+        newpw_e = Entry(new_pw)
+
+        padding = 10
+
+        website_l.grid(row=0, column = 0, sticky="ns", pady=padding, padx=padding)
+        username_l.grid(row=1, column = 0, sticky="ns", pady=padding, padx=padding)
+        newpw_l.grid(row=2, column = 0, sticky="ns", pady=padding, padx=padding)
+        website_e.grid(row=0, column = 1, sticky="swen", pady=padding, padx=padding)
+        username_e.grid(row=1, column = 1, sticky="swen", pady=padding, padx=padding)
+        newpw_e.grid(row=2, column = 1, sticky="swen", pady=padding, padx=padding)
 
 
-    def delete_password_from_database(self, password_id):
+        encryption_choice = StringVar()
+        encryption_choice.set("Encryption 1")
+        #may need a lookup function for the options below
+        encryption_algorithms = ["Encryption 1", "Encryption 2", "Encryption 3"]
+        encryption_option_menu = OptionMenu(
+            new_pw, encryption_choice, *encryption_algorithms
+        )
+        encryption_option_menu.config(width=20)
+        encryption_option_menu['anchor']='nw'
+        encryption_option_menu.grid(row=3, column=1, sticky='nw', pady=padding)
+
+        if title_text == "Add New Password":
+            ok_button = Button(new_pw, text="Save",
+                command=lambda this_window=new_pw: self.add_password(website_e.get(), username_e.get(), newpw_e.get(), encryption_choice.get(), listbox, this_window))
+        if title_text == "Edit Password":
+            website_e.insert(0, listbox[0].item(listbox[0].selection())["values"][0])
+            username_e.insert(0, listbox[0].item(listbox[0].selection())["values"][1])
+            encryption_choice.set(listbox[0].item(listbox[0].selection())["values"][2])
+            ok_button = Button(new_pw, text="Save",
+                command=lambda this_window=new_pw: self.edit_password(listbox[0].selection(), website_e.get(), username_e.get(), newpw_e.get(), encryption_choice.get(), this_window))
+
+        cancel_button = Button(new_pw, text="Cancel", command=new_pw.destroy)
+        ok_button.grid(row=4, column=0, sticky="nw", padx=padding, pady=padding)
+        cancel_button.grid(row=4, column=1, sticky="nw", padx=padding, pady=padding)
+        return
+        
+
+    def download_password(self, something1, something):
+        if self.GUI_debug > 1: print("download_password_window")
+        print("Idk what to do yet. Might throw an error for now lmao")
+        raise NotImplementedError
+
+
+    def delete_password_from_database(self, listbox: ttk.Treeview, password_id, window_to_destroy: Toplevel==None):
         # TODO call backend to delete password
+        print("Todo: go into backend database to actually delete")
         print(password_id)
-        ...
+        for item in password_id:
+            listbox.delete(item)
+        if window_to_destroy != None:
+            window_to_destroy.destroy()
+        return
 
     def delete_password_window(self, listbox: list):
         if self.GUI_debug > 1: print("delete_password_window")
+
+        to_delete = listbox[0].selection()
+        if len(to_delete) == 0:
+            sleep(0.02)
+            self.status_update("Nothing to delete")
+            self.main_window.after(6000, lambda m="Nothing to delete": self.status_update("", m))
+            return
+
+
         del_pw_confirm = Toplevel()
         del_pw_confirm.geometry(self.dpi_settings["small_window_geometry"])
+        del_pw_confirm.title("Delete password")
         del_pw_confirm.grab_set()
 
-        delete_item = listbox[0].get(listbox[0].selection())
-        print(delete_item)
 
-        confirm_text = Label(del_pw_confirm, text="Confirm delete password?")
+        
+        if len(to_delete) == 1:
+            confirm_text = Label(del_pw_confirm, text="Confirm delete password?")
+            delete_item_label = Label(del_pw_confirm, text=" ".join([str(x) for x in listbox[0].item(to_delete)["values"]]))
+        else:
+            confirm_text = Label(del_pw_confirm, text="Confirm delete")
+            delete_item_label = Label(del_pw_confirm, text="%s items?" % (str(len(to_delete))))
+
         confirm_text.pack(side=TOP, pady=10)
+        delete_item_label.pack()
         
         yes_button = Button(del_pw_confirm, text="Delete", background="#ee9999", highlightbackground="#ffcccc", activebackground="#ffcccc",
-            command=lambda b=listbox[0]: self.delete_password_from_database(b))
-        yes_button.pack()
-        no_button = Button(del_pw_confirm, text="No", command=del_pw_confirm.destroy)
+            command=lambda b=listbox[0], di=to_delete, this_window=del_pw_confirm: self.delete_password_from_database(b, di, this_window), width=15)
+        yes_button.pack(pady=(50, 20))
+        no_button = Button(del_pw_confirm, text="No", command=del_pw_confirm.destroy, width=15)
         no_button.pack()
 
         # TODO call backend to delete the password
-        ...
+
+        return
 
     def show_login_window(self):
         """Log in window."""
@@ -176,16 +317,15 @@ class Safe_Word():
         top_frame.grid(row=0, sticky="we", padx=10, pady=10)
 
         top_frame_buttons = {
-            "New\npassword": {"fun": self.add_password, "args": ["sfs", self.pw_listbox], "item": None},
-            "Edit\npassword": {"fun": self.add_password, "args": ["sfs", self.pw_listbox], "item": None},
+            "New\npassword": {"fun": self.add_password_window, "args": ["sfs", self.pw_listbox, "Add New Password"], "item": None},
+            "Edit\npassword": {"fun": self.add_password_window, "args": ["sfs", self.pw_listbox, "Edit Password"], "item": None},
             "Delete\npassword": {"fun": self.delete_password_window, "args": [self.pw_listbox], "item": None},
-            "View\npassword": {"fun": self.view_password, "args": ["sfs", self.pw_listbox], "item": None},
+            "Download\npassword": {"fun": self.download_password, "args": ["sfs", self.pw_listbox], "item": None},
         }
 
         col_count = 0
         for b in top_frame_buttons:
             fun = top_frame_buttons[b]["fun"]
-            print(fun)
             top_frame_buttons[b]["item"] = Button(top_frame, text=b, height=3, width=top_frame_buttons_width, command=lambda fun=fun, b=b: fun(*top_frame_buttons[b]["args"]))
             top_frame_buttons[b]["item"].grid(row=0, column=col_count, sticky="swen")
             col_count += 1
@@ -217,6 +357,10 @@ class Safe_Word():
         bottom_frame = Frame(main_window, height=self.dpi_settings["bottom_frame_height"], relief=SUNKEN, borderwidth=1)
         bottom_frame.grid(row=2, sticky="swen", padx=10, pady=10)
 
+        status_label = Label(bottom_frame, text="")
+        status_label.pack(side=RIGHT)
+        self.statusbar_label = status_label
+
         main_window.after(2, self.show_login_window)
         self.main_window = main_window
 
@@ -242,7 +386,6 @@ class Safe_Word():
         if self.dpi_setting == None:
             raise ValueError("Unknown DPI setting %s."% (str(self.dpi_setting)))
 
-        print(self.dpi_setting)
 
         if self.dpi_setting == 1:
             # standard scaling
