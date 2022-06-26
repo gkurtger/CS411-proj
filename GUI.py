@@ -92,6 +92,7 @@ class Safe_Word():
 
     def log_out(self, item):
         item.delete(*item.get_children())
+        self.user_key = None
         return None
 
     def retrieve_passwords(self, user_key):
@@ -113,12 +114,9 @@ class Safe_Word():
         self.add_password(website, username, password, encryption, self.pw_listbox, window_to_destroy)
 
     def add_password(self, website, username, password, encryption, listbox: list, window_to_destroy: Toplevel):
-        self.user_key
-
         if website.strip() == "" or username.strip == "" or password == "":
             self.status_update("Field missing")
             self.main_window.after(4000, lambda: self.status_update("", "Field missing"))
-
             return None
 
         l = list(listbox[0].get_children())
@@ -139,6 +137,11 @@ class Safe_Word():
 
     def add_password_window(self, user_key, listbox: list, title_text):
         if self.GUI_debug > 1: print("add_password")
+
+        if self.user_key == None or self.user_key == "":
+            self.status_update("Not logged in")
+            self.main_window.after(4000, lambda: self.status_update("", "Not logged in"))
+            return None
 
         if title_text == "Edit Password" and (len(listbox[0].selection()) == 0 or len(listbox[0].selection()) > 1):
             sleep(0.02)
@@ -361,9 +364,11 @@ class Safe_Word():
         status_label.pack(side=RIGHT)
         self.statusbar_label = status_label
 
-        main_window.after(2, self.show_login_window)
+        main_window.after(10, self.show_login_window)
         self.main_window = main_window
 
+        self.status_update("CS 411 group 4, summer 2022.")
+        self.main_window.after(3000, lambda:self.status_update("", "CS 411 group 4, summer 2022."))
 
 
 
@@ -395,10 +400,7 @@ class Safe_Word():
             self.dpi_settings["small_window_geometry"] = "300x150"
             self.dpi_settings["dpi_scrollbar_width"] = 16
             self.dpi_settings["dpi_process_window_geometry"] = "200x100"
-            self.dpi_settings["dpi_about_page_geometry"] = "300x150"
-            self.dpi_settings["dpi_author_window_geometry"] = "550x340"
             self.dpi_settings["dpi_treeview_entry_height"] = 1
-            self.dpi_settings["dpi_description_box_border"] = 3
             self.dpi_settings["top_frame_height"] = 70
 
             ttk_style = ttk.Style()
@@ -412,10 +414,7 @@ class Safe_Word():
             self.dpi_settings["small_window_geometry"] = "600x300"
             self.dpi_settings["dpi_scrollbar_width"] = 28
             self.dpi_settings["dpi_process_window_geometry"] = "500x200"
-            self.dpi_settings["dpi_about_page_geometry"] = "600x300"
-            self.dpi_settings["dpi_author_window_geometry"] = "1170x590"
             self.dpi_settings["dpi_treeview_entry_height"] = 2
-            self.dpi_settings["dpi_description_box_border"] = 5
             self.dpi_settings["top_frame_height"] = 140
 
             ttk_style = ttk.Style()
