@@ -1,24 +1,12 @@
 from tkinter import *
 from tkinter import ttk
 from time import sleep
-
+from backend import Backend
 
 from sys import platform
+from os import listdir as ls
 
-from requests import delete
-
-
-
-class Backend():
-    """place-holder backend"""
-    def __init__(self):
-        pass
-
-    def check_password(self, username, password):
-        if password == "0":
-            return (False, "")
-        else:
-            return (True, "userkey")
+# from py4j.java_gateway import JavaGateway
 
 
 def todo():
@@ -31,14 +19,17 @@ class Safe_Word():
     main_window = None
     login_window = None
 
+    main_window_title = "Safe Word"
+
     dpi_setting: str = None
     dpi_settings = dict()
 
     user_key = None # This is used to check if application is logged in. Ideally it's a key to decrypt stuff.
-    
+    user_data_path = None
+
+    pw_listbox = []
 
     def __init__(self):
-        self.backend = Backend()
         self.GUI_debug = 0
         # create main window
         self.create_main_window()
@@ -69,49 +60,61 @@ class Safe_Word():
 
 
     def user_authentication(self, username, password, window):
-        """User authentication. Calls backend to verify user."""
-        # TODO user auth.
-        
+        """User authentication. Calls backend to verify user."""        
         if username == "" or password == "":
             error = Label(window, text="Enter user name or password")
             error.grid(row=3, column=1)
             return None
-            
-        login = self.backend.check_password(username, password)
+
+        login = Backend.check_password(username, password)
         # login = (True/False, user_key)
         if not login[0]:
             error = Label(window, text="Wrong username or password")
             error.grid(row=3, column=1)
         else:
             self.pw_listbox[0].delete(*self.pw_listbox[0].get_children())
-            self.retrieve_passwords(login[1])
-            window.destroy()
-            self.user_key = login[1]
             
+            self.user_key = login[2]
+            self.user_data_path = login[1]
+            self.retrieve_passwords(login[2])
+
+            self.main_window.title(self.main_window_title + " - " + '"%s"'%(username))
+            
+            window.destroy()
         return None
 
     def log_out(self, item):
         item.delete(*item.get_children())
         self.user_key = None
+        self.user_data_path = None
+        self.main_window.title(self.main_window_title)
         return None
 
     def retrieve_passwords(self, user_key):
         """Retrieve the user's passwords from backend."""
         if self.GUI_debug > 1: print("retrieve password")
-        list_of_passwords = None
-        # TODO get user's passwords from backend:
-        # return a list containing: website, username, encryption. No actual passwords.
+        
+        list_of_passwords = Backend.read_database(self.user_data_path)
 
-        for j in range(5):
-            self.pw_listbox[0].insert(parent="", index=END, text=str(j), value=["this", "something"+str(j+10), "something"+str(j*2-5)])
+        if len(list_of_passwords) == 0:
+            self.status_update("No saved password. Press \"New Password\" to add one.")
+            self.main_window.after(3000, lambda: self.status_update("", "No saved password. Press \"Add Password\" to add one."))
+        for i in range(len(list_of_passwords)):
+            self.pw_listbox[0].insert(parent="", index=END, text=str(i), value=list_of_passwords[i][:3])
+        return
 
-    def edit_password(self, password_id, website, username, password, encryption, window_to_destroy):
-        if website.strip() == "" or username.strip == "" or password == "":
+    def edit_password(self, old_pw: str, website, username, new_pw: str, encryption_choice, window_to_destroy: Toplevel):
+        if website.strip() == "" or username.strip == "" or new_pw == "":
             self.status_update("Field missing")
             self.main_window.after(4000, lambda: self.status_update("", "Field missing"))
             return
-        self.delete_password_from_database(self.pw_listbox[0], password_id, None)
-        self.add_password(website, username, password, encryption, self.pw_listbox, window_to_destroy)
+        # old_pw is look up key for the ttk.Treeview
+        old_pw_item = self.pw_listbox[0].item(old_pw)["values"]
+        new_pw_item = (website, username, new_pw, encryption_choice)
+        Backend.edit_password(self.user_data_path, old_pw_item, new_pw_item)
+        self.pw_listbox[0].delete(*self.pw_listbox[0].get_children())
+        self.retrieve_passwords(self.user_key)
+        window_to_destroy.destroy()
 
     def add_password(self, website, username, password, encryption, listbox: list, window_to_destroy: Toplevel):
         if website.strip() == "" or username.strip == "" or password == "":
@@ -119,17 +122,15 @@ class Safe_Word():
             self.main_window.after(4000, lambda: self.status_update("", "Field missing"))
             return None
 
-        l = list(listbox[0].get_children())
-        l = [listbox[0].item(x)['values'] for x in l]
-        l.append([website, username, encryption])
-        l.sort()
+        # l = list(listbox[0].get_children())
+        # l = [listbox[0].item(x)['values'] for x in l]
+        # l.append([website, username, encryption])
+        # l.sort()
+        new_pw_item = (website, username, password, encryption)
+        Backend.edit_password(self.user_data_path, None, new_pw_item)
         listbox[0].delete(*listbox[0].get_children())
-        for item in l:
-            listbox[0].insert(parent="", index=END, text="", value=item)
+        self.retrieve_passwords(self.user_key)
 
-        print(self.user_key, website, username, password, encryption, listbox[0])
-        print("todo: call backend to add/edit new password")
-        # TODO call backend to add the new password
         window_to_destroy.destroy()
         self.status_update("Password saved")
         self.main_window.after(6000, lambda: self.status_update("", "Password saved"))
@@ -151,7 +152,7 @@ class Safe_Word():
 
         new_pw = Toplevel()
         new_pw.title(title_text)
-        new_pw.grab_set()
+        new_pw.lift()
         
         new_pw.columnconfigure(0, weight=0)
         new_pw.columnconfigure(1, weight=1)
@@ -164,6 +165,7 @@ class Safe_Word():
         website_l = Label(new_pw, text="Website")
         username_l = Label(new_pw, text="User name")
         newpw_l = Label(new_pw, text="Password")
+        enc_l = Label(new_pw, text="Encryption")
         website_e = Entry(new_pw)
         username_e = Entry(new_pw)
         newpw_e = Entry(new_pw)
@@ -173,15 +175,16 @@ class Safe_Word():
         website_l.grid(row=0, column = 0, sticky="ns", pady=padding, padx=padding)
         username_l.grid(row=1, column = 0, sticky="ns", pady=padding, padx=padding)
         newpw_l.grid(row=2, column = 0, sticky="ns", pady=padding, padx=padding)
+        enc_l.grid(row=3, column = 0, sticky="ns", pady=padding, padx=padding)
         website_e.grid(row=0, column = 1, sticky="swen", pady=padding, padx=padding)
         username_e.grid(row=1, column = 1, sticky="swen", pady=padding, padx=padding)
         newpw_e.grid(row=2, column = 1, sticky="swen", pady=padding, padx=padding)
 
 
         encryption_choice = StringVar()
-        encryption_choice.set("Encryption 1")
         #may need a lookup function for the options below
-        encryption_algorithms = ["Encryption 1", "Encryption 2", "Encryption 3"]
+        encryption_algorithms = list(Backend.list_of_encryptions.keys())
+        encryption_choice.set(encryption_algorithms[0])
         encryption_option_menu = OptionMenu(
             new_pw, encryption_choice, *encryption_algorithms
         )
@@ -207,16 +210,18 @@ class Safe_Word():
 
     def download_password(self, something1, something):
         if self.GUI_debug > 1: print("download_password_window")
-        print("Idk what to do yet. Might throw an error for now lmao")
-        raise NotImplementedError
+        with open("export.txt", "w+") as write_to:
+            with open(self.user_data_path, "r") as read_from:
+                write_to.write(read_from.read())
 
 
-    def delete_password_from_database(self, listbox: ttk.Treeview, password_id, window_to_destroy: Toplevel==None):
-        # TODO call backend to delete password
-        print("Todo: go into backend database to actually delete")
+    def delete_password_from_database(self, password_id, window_to_destroy: Toplevel==None):
         print(password_id)
         for item in password_id:
-            listbox.delete(item)
+            old_pw_item = self.pw_listbox[0].item(item)["values"]
+            Backend.edit_password(self.user_data_path, old_pw_item, None)
+        self.pw_listbox[0].delete(*self.pw_listbox[0].get_children())
+        self.retrieve_passwords(self.user_key)
         if window_to_destroy != None:
             window_to_destroy.destroy()
         return
@@ -235,7 +240,7 @@ class Safe_Word():
         del_pw_confirm = Toplevel()
         del_pw_confirm.geometry(self.dpi_settings["small_window_geometry"])
         del_pw_confirm.title("Delete password")
-        del_pw_confirm.grab_set()
+        del_pw_confirm.lift()
 
 
         
@@ -250,7 +255,7 @@ class Safe_Word():
         delete_item_label.pack()
         
         yes_button = Button(del_pw_confirm, text="Delete", background="#ee9999", highlightbackground="#ffcccc", activebackground="#ffcccc",
-            command=lambda b=listbox[0], di=to_delete, this_window=del_pw_confirm: self.delete_password_from_database(b, di, this_window), width=15)
+            command=lambda di=to_delete, this_window=del_pw_confirm: self.delete_password_from_database(di, this_window), width=15)
         yes_button.pack(pady=(50, 20))
         no_button = Button(del_pw_confirm, text="No", command=del_pw_confirm.destroy, width=15)
         no_button.pack()
@@ -292,7 +297,7 @@ class Safe_Word():
         # create local window
         main_window = Tk()
         self.set_display_scale(main_window)
-        main_window.title("Safe Word")
+        main_window.title(self.main_window_title)
         main_window.geometry(self.dpi_settings["main_window_geometry"])
 
         # This is such that the object is passed by reference.
@@ -323,7 +328,7 @@ class Safe_Word():
             "New\npassword": {"fun": self.add_password_window, "args": ["sfs", self.pw_listbox, "Add New Password"], "item": None},
             "Edit\npassword": {"fun": self.add_password_window, "args": ["sfs", self.pw_listbox, "Edit Password"], "item": None},
             "Delete\npassword": {"fun": self.delete_password_window, "args": [self.pw_listbox], "item": None},
-            "Download\npassword": {"fun": self.download_password, "args": ["sfs", self.pw_listbox], "item": None},
+            "Download\npasswords": {"fun": self.download_password, "args": ["sfs", self.pw_listbox], "item": None},
         }
 
         col_count = 0
@@ -364,7 +369,7 @@ class Safe_Word():
         status_label.pack(side=RIGHT)
         self.statusbar_label = status_label
 
-        main_window.after(10, self.show_login_window)
+        main_window.after(100, self.show_login_window)
         self.main_window = main_window
 
         self.status_update("CS 411 group 4, summer 2022.")
@@ -376,7 +381,6 @@ class Safe_Word():
         """Set display scale using DPI. Copied from existing project."""
 
         dpi = window.winfo_fpixels('1i')
-
 
         if platform == "win32" or platform == "darwin":
             self.dpi_setting = 1
@@ -397,7 +401,7 @@ class Safe_Word():
             self.dpi_settings["main_window_geometry"] = "700x400"
             self.dpi_settings["bottom_frame_height"] = 20
             self.dpi_settings["log_in_window_geometry"] = "500x150"
-            self.dpi_settings["small_window_geometry"] = "300x150"
+            self.dpi_settings["small_window_geometry"] = "300x200"
             self.dpi_settings["dpi_scrollbar_width"] = 16
             self.dpi_settings["dpi_process_window_geometry"] = "200x100"
             self.dpi_settings["dpi_treeview_entry_height"] = 1
@@ -422,6 +426,8 @@ class Safe_Word():
     
     def start(self):
         self.main_window.mainloop()
+
+        
 
 
 

@@ -1,0 +1,8 @@
+users.txt:
+DELIMITER: \
+user_name, random_index, user_file_path, hashed_password
+
+user_data/
+userx.txt:
+DELIMITER: \
+website, website_user_name, encryption, hashed_password
