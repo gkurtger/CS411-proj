@@ -1,1 +1,0 @@
-test_user\1000\./database/user_data/test_user.txt\test_password
