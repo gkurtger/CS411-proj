@@ -12,16 +12,16 @@ def add_pw_test():
 
     print("\ntesting GUI internal function: add_password().\nExpected: site\\name\\Plain-text\\pw\nresult:")
 
-    try:
-        app.user_key = "test_password"
-        app.user_data_path = "./database/user_data/test_user.txt"
-        app.add_password("site", "name", "pw", "Plain-text", [Treeview()], None)
-        with open(app.user_data_path, "r") as k:
-            file_content = k.read()
-        print(file_content)
-        if file_content == "site\\name\\Plain-text\\pw\n": print("passed")
-        else: print(" ------- failed")
-    
+
+    app.user_key = "test_password"
+    app.user_data_path = "./database/user_data/test_user.txt"
+    app.add_password("site", "name", "pw", "Plain-text", [Treeview()], None)
+    with open(app.user_data_path, "r") as k:
+        file_content = k.read()
+    print(file_content)
+    if file_content == "site\\name\\Plain-text\\pw\n": print("passed")
+    else: print(" ------- failed")
+    try: ...
     except:
         print(" ------- failed")
 
