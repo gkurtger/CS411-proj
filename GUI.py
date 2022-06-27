@@ -64,7 +64,7 @@ class Safe_Word():
         if username == "" or password == "":
             error = Label(window, text="Enter user name or password")
             error.grid(row=3, column=1)
-            return None
+            return 0
 
         login = Backend.check_password(username, password)
         # login = (True/False, user_key)
@@ -80,8 +80,8 @@ class Safe_Word():
 
             self.main_window.title(self.main_window_title + " - " + '"%s"'%(username))
             
-            window.destroy()
-        return None
+            if window != None: window.destroy()
+        return 0
 
     def log_out(self, item):
         item.delete(*item.get_children())
@@ -122,16 +122,12 @@ class Safe_Word():
             self.main_window.after(4000, lambda: self.status_update("", "Field missing"))
             return None
 
-        # l = list(listbox[0].get_children())
-        # l = [listbox[0].item(x)['values'] for x in l]
-        # l.append([website, username, encryption])
-        # l.sort()
         new_pw_item = (website, username, password, encryption)
         Backend.edit_password(self.user_data_path, None, new_pw_item)
         listbox[0].delete(*listbox[0].get_children())
         self.retrieve_passwords(self.user_key)
 
-        window_to_destroy.destroy()
+        if window_to_destroy != None: window_to_destroy.destroy()
         self.status_update("Password saved")
         self.main_window.after(6000, lambda: self.status_update("", "Password saved"))
         return

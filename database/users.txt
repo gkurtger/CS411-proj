@@ -1,2 +1,1 @@
-user1\1940312847938\./database/user_data/user1.txt\password
-u\9842309812389\./database/user_data/user2.txt\u
+test_user\1000\./database/user_data/test_user.txt\test_password
